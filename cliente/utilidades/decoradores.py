@@ -1,17 +1,15 @@
 from functools import wraps
-from utilidades.cliente_socket import enviar_log_al_servidor
+from .cliente_socket import enviar_log_al_servidor
 
 def decorador_log(funcion):
+    """
+    Decorador que intercepta la ejecución de funciones,
+    genera un log de auditoría y lo envía por Socket.
+    """
     @wraps(funcion)
     def envoltura(*args, **kwargs):
-        # Ejecutamos la función original
         resultado = funcion(*args, **kwargs)
-        
-        # Preparamos el mensaje de log
-        mensaje = f"ACCION: {funcion.__name__} ejecutada. Resultado: {resultado}"
-        
-        # Aquí delegamos el envío del log al cliente socket (Punto 5)
-        enviar_log_al_servidor(mensaje)
-        
+        mensaje_log = f"DECORADOR: Accion '{funcion.__name__}' ejecutada | Resultado: {resultado}"
+        enviar_log_al_servidor(mensaje_log)
         return resultado
     return envoltura

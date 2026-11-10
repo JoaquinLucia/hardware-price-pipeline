@@ -1,11 +1,6 @@
 import sqlite3
-import os
+from app.dao.conexion import obtener_conexion
 from app.modelo.producto import Producto
-
-def obtener_conexion():
-    """Establece y devuelve la conexión a la base de datos SQLite."""
-    ruta_db = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'hardware.db'))
-    return sqlite3.connect(ruta_db)
 
 class ProductoDAO:
     @staticmethod
@@ -19,6 +14,17 @@ class ProductoDAO:
             conn.commit()
             return cursor.lastrowid
 
+    @staticmethod
+    def obtener_por_url(url):
+        """Busca y devuelve un producto según su URL única."""
+        with obtener_conexion() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, nombre, url, tienda, categoria FROM productos WHERE url = ?", (url,))
+            fila = cursor.fetchone()
+            if fila:
+                return Producto(nombre=fila[1], url=fila[2], tienda=fila[3], categoria=fila[4], id_producto=fila[0])
+            return None
+        
     @staticmethod
     def obtener_todos_los_productos():
         with obtener_conexion() as conn:
@@ -41,7 +47,6 @@ class ProductoDAO:
 
     @staticmethod
     def obtener_por_categoria(categoria):
-        """Método nuevo para los futuros filtros de la interfaz web."""
         with obtener_conexion() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT id, nombre, url, tienda, categoria FROM productos WHERE categoria = ?", (categoria,))
@@ -49,3 +54,17 @@ class ProductoDAO:
                 Producto(nombre=f[1], url=f[2], tienda=f[3], categoria=f[4], id_producto=f[0])
                 for f in cursor.fetchall()
             ]
+
+    @staticmethod
+    def obtener_categorias_existentes():
+        """Devuelve una lista con los nombres de todas las categorías cargadas en SQLite."""
+        with obtener_conexion() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT DISTINCT categoria 
+                FROM productos 
+                WHERE categoria IS NOT NULL AND categoria != '' 
+                ORDER BY categoria ASC
+            """)
+            filas = cursor.fetchall()
+        return [f[0] for f in filas]

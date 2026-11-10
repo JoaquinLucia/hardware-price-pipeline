@@ -22,16 +22,14 @@ class ObservadorSocket(Observador):
         mensaje_formateado = f"[{evento.upper()}] {mensaje}"
         self.cliente.enviar_mensaje(mensaje_formateado)
 
-# --- EL SUJETO ---
+# --- EL SUJETO (SINGLETON) ---
 class GestorLogs:
     """
-    Actúa como un Singleton o instancia global a la que los decoradores
-    le avisan cuando pasa algo.
+    Actúa como un Singleton al que los decoradores y servicios le notifican eventos.
     """
     _instancia = None
 
     def __new__(cls):
-        # Implementación simple de Singleton para usar el mismo gestor en toda la app
         if cls._instancia is None:
             cls._instancia = super(GestorLogs, cls).__new__(cls)
             cls._instancia.observadores = []
@@ -42,11 +40,16 @@ class GestorLogs:
             self.observadores.append(observador)
 
     def desvincular(self, observador: Observador):
-        self.observadores.remove(observador)
+        if observador in self.observadores:
+            self.observadores.remove(observador)
 
     def notificar(self, evento, mensaje):
         for observador in self.observadores:
             observador.actualizar(evento, mensaje)
 
-# Instancia global para ser usada por el decorador
+# Instancia global del GestorLogs
 gestor_logs_global = GestorLogs()
+
+# --- CONEXIÓN AUTOMÁTICA DE OBSERVADORES ---
+gestor_logs_global.adjuntar(ObservadorConsola())
+gestor_logs_global.adjuntar(ObservadorSocket())

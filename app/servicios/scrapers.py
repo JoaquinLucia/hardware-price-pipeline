@@ -3,6 +3,8 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from app.servicios.decoradores import registro_log_scraper
+import cloudscraper
+from app.dao.conexion import obtener_conexion
 
 # --- CLASE BASE ---
 class ScraperHardware(ABC):
@@ -28,39 +30,54 @@ class ScraperVenex(ScraperHardware):
     
     def __init__(self):
         super().__init__("Venex")
+        # Instanciamos cloudscraper para esquivar las restricciones anti-bot de Venex
+        self.scraper_http = cloudscraper.create_scraper(
+            browser={'browser': 'chrome', 'platform': 'windows', 'desktop': True}
+        )
 
     def extraer_datos(self, url):
-        html_crudo = self.hacer_peticion(url)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Referer': 'https://www.venex.com.ar/'
+        }
+        
+        try:
+            respuesta = self.scraper_http.get(url, headers=headers, timeout=15)
+            if respuesta.status_code != 200:
+                raise ValueError(f"Error HTTP {respuesta.status_code}")
+            html_crudo = respuesta.text
+        except Exception as e:
+            raise ValueError(f"No se pudo realizar la petición HTTP. Detalle: {e}")
+
         soup = BeautifulSoup(html_crudo, 'html.parser')
         
         try:
-            # --- 1. BUSCAR NOMBRE (Técnica OpenGraph / Redes Sociales) ---
-            meta_og_title = soup.find('meta', property='og:title')
+            # --- 1. BUSCAR NOMBRE DESDE LA URL (Más seguro y limpio) ---
+            # Separamos por '/' y agarramos la última parte, sacamos el '.html' y cambiamos guiones por espacios
+        # Limpiamos primero parámetros de búsqueda y barras finales
+            url_limpia = url.split('?')[0].rstrip('/')
+            slug = url_limpia.split('/')[-1].replace('.html', '')
+            nombre_producto = slug.replace('-', ' ').title()
             
-            if not meta_og_title or not meta_og_title.get('content'):
-                raise ValueError("No se encontró el meta tag og:title con el nombre del producto.")
+            # --- 2. BUSCAR PRECIO ---
+            precio_tag = soup.find(class_='textPrecio')
+            if not precio_tag:
+                raise ValueError("No se encontró la clase 'textPrecio'.")
                 
-            nombre_crudo = meta_og_title['content'].strip()
+            precio_texto = precio_tag.text.strip()
             
-            # Limpiamos por si le agregan " | Venex" al final en la metadata
-            nombre_producto = nombre_crudo.split('|')[0].split('- Venex')[0].strip()
-            # 2. Buscar Precio
-            etiqueta_precio = soup.find(class_=re.compile(r'price', re.IGNORECASE))
-            if not etiqueta_precio:
-                raise ValueError("No se encontró la etiqueta del precio.")
-                
-            precio_texto = etiqueta_precio.text.strip()
+            # Validamos que al menos contenga números
+            if not any(c.isdigit() for c in precio_texto):
+                raise ValueError("La etiqueta de precio no contiene valores numéricos.")
             
             # --- FASE DE TRANSFORMACIÓN (ETL) ---
-            # 1. Quitamos símbolos de moneda y ajustamos los decimales
             precio_limpio = precio_texto.replace('$', '').replace('.', '').replace(',', '.').strip()
             
-            # 2. Dividimos el bloque gigante de texto usando los espacios/saltos de línea
-            # split() por defecto corta en cada espacio o \n. Nos quedamos con el índice [0]
-            primer_valor = precio_limpio.split()[0]
-            
-            # 3. Ahora sí, convertimos el número puro a float
-            precio_float = float(primer_valor)
+            coincidencia = re.search(r'\d+(\.\d+)?', precio_limpio)
+            if not coincidencia:
+                raise ValueError(f"No se pudo extraer un número del texto: {precio_texto}")
+                
+            precio_float = float(coincidencia.group())
             
             return {
                 "nombre": nombre_producto,
@@ -70,11 +87,11 @@ class ScraperVenex(ScraperHardware):
             }
             
         except Exception as e:
-            # TÁCTICA DE DEBUGGING: Guardamos el HTML crudo
+            # TÁCTICA DE DEBUGGING (Igual a FullH4rd)
             with open("debug_venex.html", "w", encoding="utf-8") as f:
                 f.write(html_crudo)
-            
-            raise ValueError(f"Fallo en la extracción. Se generó 'debug_venex.html' para revisar. Detalle: {e}")
+                
+            raise ValueError(f"Fallo en la extracción de Venex. Se generó 'debug_venex.html'. Detalle: {e}")
 
 
         # --- CLASE HIJA (COMPRAGAMER) ---

@@ -5,61 +5,104 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial - {{ producto.nombre }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Importamos la librería de gráficos Chart.js -->
+    <!-- Importamos Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-light">
 
 <div class="container mt-5">
-    <div class="row mb-4">
-        <div class="col">
-            <a href="/" class="btn btn-outline-secondary mb-3">&larr; Volver al panel</a>
-            <h3 class="fw-bold text-primary">{{ producto.nombre }}</h3>
-            <span class="badge bg-secondary">{{ producto.tienda }}</span>
-            <a href="{{ producto.url }}" target="_blank" class="btn btn-sm btn-link">Ver publicación original</a>
-        </div>
+    <!-- Botón volver y Título -->
+    <div class="mb-4">
+        <a href="/" class="btn btn-outline-secondary mb-3">&larr; Volver al monitor</a>
+        <h3 class="fw-bold">{{ producto.nombre }}</h3>
+        <p class="text-muted mb-1">Categoría: <span class="badge bg-secondary">{{ producto.categoria }}</span></p>
+        
+        {% if 'fullh4rd' in producto.tienda.lower() %}
+            <span class="badge border border-danger text-dark bg-white shadow-sm px-2 py-1">🔴 FullH4rd</span>
+        {% elif 'venex' in producto.tienda.lower() %}
+            <span class="badge border border-primary text-primary bg-white shadow-sm px-2 py-1">🔵 Venex</span>
+        {% else %}
+            <span class="badge bg-dark">{{ producto.tienda }}</span>
+        {% endif %}
     </div>
 
-    <!-- Contenedor del Gráfico -->
-    <div class="card shadow-sm mb-5">
-        <div class="card-body">
-            <h5 class="card-title text-muted mb-4">Evolución del Precio</h5>
-            <!-- Acá se dibuja la curva -->
-            <canvas id="graficoPrecios" height="100"></canvas>
+    <div class="row">
+        <!-- Tarjeta de Precio Actual -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <h5 class="card-title text-muted">Precio Actual</h5>
+                    <h2 class="display-5 fw-bold text-success mt-2">
+                        ${{ "{:,.2f}".format(precio_actual) }}
+                    </h2>
+                    <a href="{{ producto.url }}" target="_blank" class="btn btn-primary mt-4 w-75 mx-auto">
+                        Ver en Tienda Oficial
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta del Gráfico -->
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold text-secondary">Evolución de Precio</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoPrecios" height="100"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    // 1. Recibimos las listas de Python y las convertimos a JavaScript nativo
-const etiquetasFechas = JSON.parse('{{ fechas | tojson }}');
-const datosPrecios = JSON.parse('{{ precios | tojson }}');
+    // Recibimos los datos desde Flask inyectados en el template
+    const etiquetasFechas = {{ fechas | tojson }};
+    const datosPrecios = {{ precios | tojson }};
 
-    // 2. Apuntamos al canvas de HTML
     const ctx = document.getElementById('graficoPrecios').getContext('2d');
-
-    // 3. Configuramos y dibujamos el gráfico
-    new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: etiquetasFechas, // Las fechas van en el eje X
+            labels: etiquetasFechas,
             datasets: [{
-                label: 'Precio ($)',
-                data: datosPrecios, // Los montos van en el eje Y
-                borderColor: '#0d6efd', // Color azul de Bootstrap
-                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                label: 'Precio ($ARS)',
+                data: datosPrecios,
+                borderColor: '#198754', // Verde Success de Bootstrap
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
                 borderWidth: 2,
-                pointBackgroundColor: '#0d6efd',
+                pointBackgroundColor: '#198754',
                 pointRadius: 4,
-                fill: true, // Pinta suavemente debajo de la curva
-                tension: 0.2 // Le da una ligera curva elegante a los picos
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.2 // Curva suave
             }]
         },
         options: {
             responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let value = context.raw;
+                            // Formateo de moneda para el tooltip
+                            return '$' + value.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
             scales: {
                 y: {
-                    beginAtZero: false // Para que el gráfico no se achate si los precios son altos
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString('es-AR');
+                        }
+                    }
                 }
             }
         }

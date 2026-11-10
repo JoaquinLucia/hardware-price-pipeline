@@ -10,13 +10,11 @@ class ClienteSocketLog:
         Abre una conexión TCP, manda el string codificado y cierra.
         """
         try:
-            # Crear socket TCP/IP
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((self.host, self.puerto))
                 s.sendall(mensaje.encode('utf-8'))
         except ConnectionRefusedError:
-            # Si el servidor no está corriendo, fallamos en silencio
-            # para no frenar la aplicación principal.
-            print("[ADVERTENCIA] Servidor de logs no disponible.")
+            # Si el servidor no está corriendo, continuamos sin bloquear
+            pass
         except Exception as e:
             print(f"[ERROR SOCKET] {e}")

@@ -1,9 +1,5 @@
 import sqlite3
-import os
-
-def obtener_conexion():
-    ruta_db = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'hardware.db'))
-    return sqlite3.connect(ruta_db)
+from app.dao.conexion import obtener_conexion
 
 class UrlDAO:
     @staticmethod
@@ -21,7 +17,7 @@ class UrlDAO:
 
     @staticmethod
     def guardar_url(url):
-        UrlDAO._crear_tabla_si_no_existe() # Blindaje automático
+        UrlDAO._crear_tabla_si_no_existe()
         with obtener_conexion() as conn:
             cursor = conn.cursor()
             try:
@@ -33,7 +29,7 @@ class UrlDAO:
 
     @staticmethod
     def obtener_todas():
-        UrlDAO._crear_tabla_si_no_existe() # Blindaje automático
+        UrlDAO._crear_tabla_si_no_existe()
         with obtener_conexion() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT url FROM urls_monitoreadas")

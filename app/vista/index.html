@@ -10,13 +10,34 @@
 <body class="bg-light">
 
 <div class="container mt-5 mb-5">
-    <!-- Encabezado -->
-    <div class="row mb-4">
-        <div class="col">
-            <h2 class="fw-bold text-primary">Monitor de Hardware</h2>
-            <p class="text-muted">Comparador de precios automatizado (Venex & FullH4rd)</p>
+    <!-- Encabezado con Botón de Crawler -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-primary mb-1">Monitor de Hardware</h2>
+            <p class="text-muted mb-0">Comparador de precios automatizado (Venex & FullH4rd)</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <form action="/ejecutar_crawler" method="POST" class="d-inline">
+                <button type="submit" 
+                        class="btn btn-warning shadow-sm fw-semibold" 
+                        onclick="return confirm('¿Desea iniciar la actualización masiva de precios en segundo plano? Esto puede demorar varios minutos.');">
+                    Actualizar Precios (Crawler)
+                </button>
+            </form>
         </div>
     </div>
+
+    <!-- Contenedor de Mensajes Flash (Notificaciones) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm mb-4" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
     <!-- Barra de Filtros y Búsqueda -->
     <div class="card shadow-sm mb-4">
@@ -76,19 +97,17 @@
                         </td>
                         <td class="align-middle">
                             {% if 'fullh4rd' in item.producto.tienda.lower() %}
-                            <!-- Estilo para FullH4rd (Negro y Rojo) -->
                                 <span class="badge border border-danger text-dark bg-white shadow-sm px-2 py-1" style="font-size: 0.85rem;">
                                     FullH4rd
                                 </span>
                             {% elif 'venex' in item.producto.tienda.lower() %}
-                                <!-- Estilo para Venex (Azul) -->
                                 <span class="badge border border-primary text-primary bg-white shadow-sm px-2 py-1" style="font-size: 0.85rem;">
                                     Venex
                                 </span>
-    {% else %}
-        <span class="badge bg-secondary">{{ item.producto.tienda }}</span>
-    {% endif %}
-</td>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ item.producto.tienda }}</span>
+                            {% endif %}
+                        </td>
                         <td class="text-end fw-bold text-success fs-6">
                             ${{ "{:,.2f}".format(item.precio_actual) }}
                         </td>

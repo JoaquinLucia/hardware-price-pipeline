@@ -122,18 +122,17 @@ def agregar_url():
             
     return redirect('/')
 
-# --- NUEVO ENDPOINT PARA EL CRAWLER ---
+# --- ENDPOINT PARA EL CRAWLER ---
 @app.route('/ejecutar_crawler', methods=['POST'])
 def ejecutar_crawler():
     """
-    Inicia la actualización masiva de todas las categorías en un hilo separado (background).
+    Inicia la actualización masiva de todas las categorías en un hilo separado
     """
     try:
         # Creamos y arrancamos el hilo para que el escaneo ocurra por detrás
         hilo_scraper = threading.Thread(target=ejecutar_actualizacion_completa)
         hilo_scraper.start()
         
-        # En tu index.html podés atajar los flash() para mostrar un cartelito verde
         flash('Actualización masiva iniciada en segundo plano. Esto demorará un rato.', 'success')
     except Exception as e:
         print(f"Error al iniciar hilo: {e}")

@@ -2,7 +2,7 @@ import asyncio
 import os
 from datetime import datetime
 
-DIRECTORIO_LOGS = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'app'))
+DIRECTORIO_LOGS = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'logs'))
 ARCHIVO_LOG = os.path.join(DIRECTORIO_LOGS, 'sistema_hardware.log')
 
 HOST = '127.0.0.1'
